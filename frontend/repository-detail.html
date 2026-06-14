@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Repository Details - GitMind</title>
+    <link rel="stylesheet" href="/css/dashboard.css">
+    <link rel="stylesheet" href="/css/repository.css">
+    <link rel="stylesheet" href="/css/pr-tools.css">
+    <link rel="stylesheet" href="/css/conflict-detector.css">
+    <link rel="stylesheet" href="/css/dependency-dashboard.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+
+<body>
+    <!-- Top Navigation -->
+    <nav class="top-nav">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <svg class="logo-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M12 2v20M2 12h20"></path>
+                </svg>
+                <span class="logo-text">GitMind</span>
+            </div>
+
+            <div class="nav-right">
+                <a href="/dashboard/" class="btn-back">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7" />
+                    </svg>
+                    Back to Dashboard
+                </a>
+                <div class="user-profile">
+                    <img id="userAvatar" src="" alt="User Avatar" class="user-avatar">
+                    <span id="userName" class="user-name">Loading...</span>
+                </div>
+                <button id="logoutBtn" class="btn-logout">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="repo-detail-container">
+        <!-- Repository Header -->
+        <div class="repo-header-section">
+            <div class="repo-title-row">
+                <div class="repo-title-info">
+                    <h1 id="repoFullName" class="repo-title">Loading...</h1>
+                    <span id="repoBadge" class="repo-badge"></span>
+                </div>
+                <div class="repo-actions">
+                    <button id="syncRepoBtn" class="btn-action">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <polyline points="23 4 23 10 17 10"></polyline>
+                            <polyline points="1 20 1 14 7 14"></polyline>
+                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                        </svg>
+                        Sync Data
+                    </button>
+                    <a id="githubLink" href="#" target="_blank" class="btn-action">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+                        </svg>
+                        View on GitHub
+                    </a>
+                </div>
+            </div>
+
+            <p id="repoDescription" class="repo-description">Loading description...</p>
+
+            <!-- Repository Stats -->
+            <div class="repo-stats-bar">
+                <div class="stat-item">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon
+                            points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
+                        </polygon>
+                    </svg>
+                    <span id="repoStars">0</span> stars
+                </div>
+                <div class="stat-item">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="18" cy="5" r="3"></circle>
+                        <circle cx="6" cy="12" r="3"></circle>
+                        <circle cx="18" cy="19" r="3"></circle>
+                        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                    </svg>
+                    <span id="repoForks">0</span> forks
+                </div>
+                <div class="stat-item">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    <span id="repoIssues">0</span> issues
+                </div>
+                <div class="stat-item">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                    <span id="repoLanguage">Unknown</span>
+                </div>
+                <div class="stat-item">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    Updated <span id="repoUpdated">recently</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs Navigation -->
+        <div class="tabs-container">
+            <div class="tabs-nav">
+                <button class="tab-btn active" data-tab="overview">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                    </svg>
+                    Overview
+                </button>
+                <button class="tab-btn" data-tab="pulls">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="18" cy="18" r="3"></circle>
+                        <circle cx="6" cy="6" r="3"></circle>
+                        <path d="M13 6h3a2 2 0 0 1 2 2v7"></path>
+                        <line x1="6" y1="9" x2="6" y2="21"></line>
+                    </svg>
+                    Pull Requests
+                    <span id="prCount" class="tab-count">0</span>
+                </button>
+                <button class="tab-btn" data-tab="issues">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    Issues
+                    <span id="issueCount" class="tab-count">0</span>
+                </button>
+                <button class="tab-btn" data-tab="activity">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                    </svg>
+                    Activity
+                </button>
+                <button class="tab-btn" data-tab="expertise">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                        <path d="M2 17l10 5 10-5"></path>
+                        <path d="M2 12l10 5 10-5"></path>
+                    </svg>
+                    Expertise
+                </button>
+                <button class="tab-btn" data-tab="conflicts">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path
+                            d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z">
+                        </path>
+                        <line x1="12" y1="9" x2="12" y2="13"></line>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                    Conflicts
+                    <span id="conflictCount" class="tab-count">0</span>
+                </button>
+                <button class="tab-btn" data-tab="dependencies">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="2" y1="12" x2="22" y2="12"></line>
+                        <path
+                            d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z">
+                        </path>
+                    </svg>
+                    Dependencies
+                </button>
+            </div>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="tabs-content">
+            <!-- Overview Tab -->
+            <div id="overview" class="tab-content active">
+                <div class="overview-grid">
+                    <!-- Recent Commits -->
+                    <div class="overview-card">
+                        <h3 class="card-title">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <circle cx="12" cy="12" r="4"></circle>
+                                <line x1="1.05" y1="12" x2="7" y2="12"></line>
+                                <line x1="17.01" y1="12" x2="22.96" y2="12"></line>
+                            </svg>
+                            Recent Commits
+                        </h3>
+                        <div id="commitsList" class="list-container">
+                            <div class="loading-state">Loading commits...</div>
+                        </div>
+                    </div>
+
+                    <!-- Language Stats -->
+                    <div class="overview-card">
+                        <h3 class="card-title">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                            </svg>
+                            Languages
+                        </h3>
+                        <div class="chart-container">
+                            <canvas id="languageChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Top Contributors -->
+                    <div class="overview-card full-width">
+                        <h3 class="card-title">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="9" cy="7" r="4"></circle>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                            </svg>
+                            Top Contributors
+                        </h3>
+                        <div id="contributorsList" class="contributors-grid">
+                            <div class="loading-state">Loading contributors...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pull Requests Tab -->
+            <div id="pulls" class="tab-content">
+                <!-- PR Analysis Banner (Phase 3 Addition) -->
+                <div id="prAnalysisBanner" class="pr-analysis-banner hidden">
+                    <div class="analysis-info">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path
+                                d="M12 1v6m0 6v6m5.2-13.2l-4.2 4.2m0 6l4.2 4.2M23 12h-6m-6 0H5m13.2 5.2l-4.2-4.2m0-6l4.2-4.2">
+                            </path>
+                        </svg>
+                        <span id="analysisStatusText">AI Analysis Available</span>
+                    </div>
+                    <button id="viewAnalysisBtn" class="btn-view-analysis">View Analysis</button>
+                </div>
+
+                <div class="filter-bar">
+                    <div class="filter-buttons">
+                        <button class="filter-btn active" data-state="all">All</button>
+                        <button class="filter-btn" data-state="open">Open</button>
+                        <button class="filter-btn" data-state="closed">Closed</button>
+                    </div>
+                </div>
+                <div id="pullRequestsList" class="items-list">
+                    <div class="loading-state">Loading pull requests...</div>
+                </div>
+            </div>
+
+            <!-- Issues Tab -->
+            <div id="issues" class="tab-content">
+                <div class="filter-bar">
+                    <div class="filter-buttons">
+                        <button class="filter-btn active" data-state="all">All</button>
+                        <button class="filter-btn" data-state="open">Open</button>
+                        <button class="filter-btn" data-state="closed">Closed</button>
+                    </div>
+                </div>
+                <div id="issuesList" class="items-list">
+                    <div class="loading-state">Loading issues...</div>
+                </div>
+            </div>
+
+            <!-- Activity Tab -->
+            <div id="activity" class="tab-content">
+                <div id="activityFeed" class="activity-feed">
+                    <div class="empty-state">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="1">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                        </svg>
+                        <h3>No Activity Yet</h3>
+                        <p>Webhook events will appear here once configured</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Expertise Tab (Phase 5) -->
+            <div id="expertise" class="tab-content">
+                <div id="expertiseContainer"></div>
+            </div>
+
+            <!-- Conflicts Tab (Phase 7) -->
+            <div id="conflicts" class="tab-content">
+                <div id="conflictsContainer"></div>
+            </div>
+
+            <!-- Dependencies Tab (Phase 7) -->
+            <div id="dependencies" class="tab-content">
+                <div id="dependenciesContainer"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="spinner"></div>
+        <p id="loadingText">Loading...</p>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/charts.js"></script>
+    <script src="/js/pr-indicators.js"></script>
+    <script src="/js/pr-description-generator.js"></script>
+    <script src="/js/reviewer-recommender.js"></script>
+    <script src="/js/expertise-heatmap.js"></script>
+    <script src="/js/conflict-detector.js"></script>
+    <script src="/js/dependency-dashboard.js"></script>
+    <script src="/js/repository.js"></script>
+</body>
+
+</html>

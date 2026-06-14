@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - GitMind</title>
+    <link rel="stylesheet" href="/css/dashboard.css">
+    <link rel="stylesheet" href="/css/settings.css">
+</head>
+
+<body>
+    <!-- Top Navigation -->
+    <nav class="top-nav">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <svg class="logo-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M12 2v20M2 12h20"></path>
+                </svg>
+                <span class="logo-text">GitMind</span>
+            </div>
+            <div class="nav-right">
+                <a href="/dashboard/" class="btn-back">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7" />
+                    </svg>
+                    Back to Dashboard
+                </a>
+                <div class="user-profile">
+                    <img id="userAvatar" src="" alt="User Avatar" class="user-avatar">
+                    <span id="userName" class="user-name">Loading...</span>
+                </div>
+                <button id="logoutBtn" class="btn-logout">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="settings-container">
+        <!-- Sidebar Navigation -->
+        <aside class="settings-sidebar">
+            <nav class="settings-nav">
+                <button class="settings-nav-item active" data-section="global">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path
+                            d="M12 1v6m0 6v6m5.2-13.2l-4.2 4.2m0 6l4.2 4.2M23 12h-6m-6 0H5m13.2 5.2l-4.2-4.2m0-6l4.2-4.2">
+                        </path>
+                    </svg>
+                    <span>Global Settings</span>
+                </button>
+                <button class="settings-nav-item" data-section="repositories">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                    <span>Repository Settings</span>
+                </button>
+                <button class="settings-nav-item" data-section="cost">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="1" x2="12" y2="23"></line>
+                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                    </svg>
+                    <span>Usage & Costs</span>
+                </button>
+                <button class="settings-nav-item" data-section="activity">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                    </svg>
+                    <span>Activity Logs</span>
+                </button>
+            </nav>
+        </aside>
+
+        <!-- Main Settings Content -->
+        <main class="settings-main">
+
+            <!-- ============================================================
+                 GLOBAL SETTINGS SECTION
+            ============================================================ -->
+            <section id="global" class="settings-section active">
+                <div class="settings-header">
+                    <h1>Global Settings</h1>
+                    <p class="settings-subtitle">These settings apply to all your repositories by default</p>
+                </div>
+
+                <div class="settings-content">
+
+                    <!-- PR Analysis Settings -->
+                    <div class="settings-card">
+                        <div class="settings-card-header">
+                            <h2>🤖 PR Analysis</h2>
+                            <p>Automatically analyze pull requests with AI</p>
+                        </div>
+                        <div class="settings-card-body">
+
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <label class="setting-label">Enable automatic PR analysis</label>
+                                    <p class="setting-description">Analyze PRs when opened or updated via webhook</p>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="autoAnalyzePrs">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <label class="setting-label">Skip draft PRs</label>
+                                    <p class="setting-description">Don't analyze PRs marked as drafts</p>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="skipDraftPrs">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <label class="setting-label">Minimum lines for analysis</label>
+                                    <p class="setting-description">
+                                        Minimum changed lines to trigger analysis.
+                                        Set to <strong>0</strong> to always analyze regardless of size.
+                                    </p>
+                                </div>
+                                <input type="number" id="minLinesForAnalysis" class="setting-input" min="0" value="50">
+                            </div>
+
+                            <!-- FIX: Clearer label — this controls whether comments are
+                                 auto-posted to GitHub, not just whether analysis runs. -->
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <label class="setting-label">
+                                        Auto-post analysis comments to GitHub
+                                        <span style="
+                                            display: inline-block;
+                                            background: #f59e0b;
+                                            color: #fff;
+                                            font-size: 0.7rem;
+                                            font-weight: 700;
+                                            padding: 1px 6px;
+                                            border-radius: 4px;
+                                            margin-left: 6px;
+                                            vertical-align: middle;
+                                        ">Required for comments</span>
+                                    </label>
+                                    <p class="setting-description">
+                                        <strong>Manual Review</strong> — analysis is saved in the dashboard but
+                                        NOT posted to GitHub automatically.<br>
+                                        <strong>Automatic</strong> — analysis is posted as a GitHub PR comment
+                                        immediately after analysis completes. You must enable this for comments
+                                        to appear on GitHub.
+                                    </p>
+                                </div>
+                                <select id="autoPostComments" class="setting-select">
+                                    <option value="false">Manual Review (don't post to GitHub)</option>
+                                    <option value="true">Automatic (post comment to GitHub)</option>
+                                </select>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- Documentation Settings -->
+                    <div class="settings-card">
+                        <div class="settings-card-header">
+                            <h2>📚 Documentation</h2>
+                            <p>Automatically update documentation</p>
+                        </div>
+                        <div class="settings-card-body">
+
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <label class="setting-label">Enable automatic documentation updates</label>
+                                    <p class="setting-description">Generate README_AI.md when code changes</p>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="autoUpdateDocs">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <label class="setting-label">Update frequency</label>
+                                    <p class="setting-description">How often to check for updates</p>
+                                </div>
+                                <select id="docsUpdateFrequency" class="setting-select">
+                                    <option value="manual">Manual Only</option>
+                                    <option value="daily">Daily</option>
+                                    <option value="weekly">Weekly (Recommended)</option>
+                                    <option value="monthly">Monthly</option>
+                                </select>
+                            </div>
+
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <label class="setting-label">Minimum changes to trigger update</label>
+                                    <p class="setting-description">Lines of code changed before updating docs</p>
+                                </div>
+                                <input type="number" id="docsMinChanges" class="setting-input" min="1" value="100">
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- Insights Settings -->
+                    <div class="settings-card">
+                        <div class="settings-card-header">
+                            <h2>💡 Insights</h2>
+                            <p>Proactive recommendations and alerts</p>
+                        </div>
+                        <div class="settings-card-body">
+
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <label class="setting-label">Enable automatic insights</label>
+                                    <p class="setting-description">Generate insights about your repositories</p>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="autoGenerateInsights">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <label class="setting-label">Generation frequency</label>
+                                    <p class="setting-description">How often to generate insights</p>
+                                </div>
+                                <select id="insightsFrequency" class="setting-select">
+                                    <option value="manual">Manual Only</option>
+                                    <option value="realtime">Real-time (Immediate)</option>
+                                    <option value="daily">Daily (Recommended)</option>
+                                    <option value="weekly">Weekly</option>
+                                </select>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- Notification Settings -->
+                    <div class="settings-card">
+                        <div class="settings-card-header">
+                            <h2>🔔 Notifications</h2>
+                            <p>Get notified about important events</p>
+                        </div>
+                        <div class="settings-card-body">
+
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <label class="setting-label">Email on critical issues</label>
+                                    <p class="setting-description">Send email when critical security issues found</p>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="emailCriticalIssues">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <label class="setting-label">Daily digest email</label>
+                                    <p class="setting-description">Summary of daily activity and insights</p>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="emailDailyDigest">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <label class="setting-label">Slack notifications</label>
+                                    <p class="setting-description">Send notifications to Slack workspace</p>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="slackNotifications">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="setting-item" id="slackWebhookContainer" style="display: none;">
+                                <div class="setting-info">
+                                    <label class="setting-label">Slack webhook URL</label>
+                                    <p class="setting-description">Your Slack incoming webhook URL</p>
+                                </div>
+                                <input type="url" id="slackWebhookUrl" class="setting-input"
+                                    placeholder="https://hooks.slack.com/services/...">
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- Rate Limiting -->
+                    <div class="settings-card">
+                        <div class="settings-card-header">
+                            <h2>⚡ Rate Limiting</h2>
+                            <p>Control API usage and costs</p>
+                        </div>
+                        <div class="settings-card-body">
+
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <label class="setting-label">Daily token limit</label>
+                                    <p class="setting-description">Maximum API tokens per day</p>
+                                </div>
+                                <input type="number" id="dailyTokenLimit" class="setting-input" min="1000"
+                                    value="100000">
+                            </div>
+
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <label class="setting-label">Pause automation on limit</label>
+                                    <p class="setting-description">Stop automation when daily limit reached</p>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="pauseOnLimit">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="settings-actions">
+                        <button id="saveGlobalSettings" class="btn-primary">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            Save Settings
+                        </button>
+                        <button id="resetGlobalSettings" class="btn-secondary">Reset to Defaults</button>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- ============================================================
+                 REPOSITORY SETTINGS SECTION
+            ============================================================ -->
+            <section id="repositories" class="settings-section">
+                <div class="settings-header">
+                    <h1>Repository Settings</h1>
+                    <p class="settings-subtitle">Customize settings for individual repositories</p>
+                </div>
+
+                <div class="settings-content">
+                    <div class="repo-selector">
+                        <label for="repoSelect">Select Repository:</label>
+                        <select id="repoSelect" class="setting-select">
+                            <option value="">Loading repositories...</option>
+                        </select>
+                    </div>
+
+                    <div id="repoSettingsContent" style="display: none;">
+
+                        <!-- ================================================
+                             WEBHOOK STATUS — always visible once a repo is
+                             selected (moved OUT of repoCustomSettings so it
+                             shows regardless of the override toggle)
+                        ================================================ -->
+                        <div class="settings-card">
+                            <div class="settings-card-header">
+                                <h2>🔗 Webhook Status</h2>
+                                <p>
+                                    Webhooks are required for auto PR analysis, auto docs, and
+                                    real-time insights to trigger automatically.
+                                </p>
+                            </div>
+                            <div class="settings-card-body">
+                                <div id="webhookStatus" class="webhook-status">
+                                    <div class="webhook-status-header">
+                                        <h3>Connection</h3>
+                                        <span id="webhookStatusBadge" class="status-badge">Checking...</span>
+                                    </div>
+                                    <div class="webhook-status-details">
+                                        <p id="webhookStatusText">Loading...</p>
+                                        <div class="webhook-actions">
+                                            <button id="setupWebhookBtn" class="btn-secondary" style="display: none;">
+                                                Setup Webhook
+                                            </button>
+                                            <button id="deleteWebhookBtn" class="btn-danger" style="display: none;">
+                                                Delete Webhook
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Override toggle -->
+                        <div class="settings-card">
+                            <div class="settings-card-header">
+                                <h2>Repository Override</h2>
+                                <p>Customize settings for <strong id="selectedRepoName"></strong></p>
+                            </div>
+                            <div class="settings-card-body">
+                                <div class="setting-item">
+                                    <div class="setting-info">
+                                        <label class="setting-label">Override global settings</label>
+                                        <p class="setting-description">
+                                            Use custom settings instead of global defaults
+                                        </p>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="repoOverrideGlobal">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Per-repo overrides (only visible when override is ON) -->
+                        <div id="repoCustomSettings" style="display: none;">
+
+                            <div class="settings-card">
+                                <div class="settings-card-header">
+                                    <h2>🤖 PR Analysis (Repository)</h2>
+                                </div>
+                                <div class="settings-card-body">
+                                    <div class="setting-item">
+                                        <div class="setting-info">
+                                            <label class="setting-label">Enable PR analysis</label>
+                                        </div>
+                                        <label class="toggle-switch">
+                                            <input type="checkbox" id="repoEnablePrAnalysis">
+                                            <span class="toggle-slider"></span>
+                                        </label>
+                                    </div>
+                                    <div class="setting-item">
+                                        <div class="setting-info">
+                                            <label class="setting-label">Auto-analyze PRs</label>
+                                        </div>
+                                        <label class="toggle-switch">
+                                            <input type="checkbox" id="repoAutoAnalyzePrs">
+                                            <span class="toggle-slider"></span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="settings-card">
+                                <div class="settings-card-header">
+                                    <h2>📚 Documentation (Repository)</h2>
+                                </div>
+                                <div class="settings-card-body">
+                                    <div class="setting-item">
+                                        <div class="setting-info">
+                                            <label class="setting-label">Enable documentation</label>
+                                        </div>
+                                        <label class="toggle-switch">
+                                            <input type="checkbox" id="repoEnableDocumentation">
+                                            <span class="toggle-slider"></span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="settings-card">
+                                <div class="settings-card-header">
+                                    <h2>💡 Insights (Repository)</h2>
+                                </div>
+                                <div class="settings-card-body">
+                                    <div class="setting-item">
+                                        <div class="setting-info">
+                                            <label class="setting-label">Enable insights</label>
+                                        </div>
+                                        <label class="toggle-switch">
+                                            <input type="checkbox" id="repoEnableInsights">
+                                            <span class="toggle-slider"></span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div><!-- /repoCustomSettings -->
+
+                        <div class="settings-actions">
+                            <button id="saveRepoSettings" class="btn-primary">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                Save Repository Settings
+                            </button>
+                        </div>
+
+                    </div><!-- /repoSettingsContent -->
+                </div>
+            </section>
+
+            <!-- ============================================================
+                 COST TRACKING SECTION
+            ============================================================ -->
+            <section id="cost" class="settings-section">
+                <div class="settings-header">
+                    <h1>Usage & Costs</h1>
+                    <p class="settings-subtitle">Track your API usage and estimated costs</p>
+                </div>
+                <div class="settings-content">
+                    <div class="cost-summary-grid">
+                        <div class="cost-card">
+                            <div class="cost-icon">📅</div>
+                            <h3>Today</h3>
+                            <p class="cost-value" id="costToday">Loading...</p>
+                            <p class="cost-label">tokens used</p>
+                            <p class="cost-amount" id="costTodayAmount">$0.00</p>
+                        </div>
+                        <div class="cost-card">
+                            <div class="cost-icon">📊</div>
+                            <h3>This Week</h3>
+                            <p class="cost-value" id="costWeek">Loading...</p>
+                            <p class="cost-label">tokens used</p>
+                            <p class="cost-amount" id="costWeekAmount">$0.00</p>
+                        </div>
+                        <div class="cost-card">
+                            <div class="cost-icon">📈</div>
+                            <h3>This Month</h3>
+                            <p class="cost-value" id="costMonth">Loading...</p>
+                            <p class="cost-label">tokens used</p>
+                            <p class="cost-amount" id="costMonthAmount">$0.00</p>
+                        </div>
+                    </div>
+                    <div class="settings-card">
+                        <div class="settings-card-header">
+                            <h2>Daily Breakdown</h2>
+                        </div>
+                        <div class="settings-card-body">
+                            <div id="dailyBreakdown" class="daily-breakdown">
+                                <p class="loading-state">Loading breakdown...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============================================================
+                 ACTIVITY LOGS SECTION
+            ============================================================ -->
+            <section id="activity" class="settings-section">
+                <div class="settings-header">
+                    <h1>Activity Logs</h1>
+                    <p class="settings-subtitle">View automated actions and their results</p>
+                </div>
+                <div class="settings-content">
+                    <div class="settings-card">
+                        <div class="settings-card-header">
+                            <h2>Recent Automation Activity</h2>
+                            <button id="refreshLogsBtn" class="btn-secondary btn-sm">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <polyline points="23 4 23 10 17 10"></polyline>
+                                    <polyline points="1 20 1 14 7 14"></polyline>
+                                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15">
+                                    </path>
+                                </svg>
+                                Refresh
+                            </button>
+                        </div>
+                        <div class="settings-card-body">
+                            <div id="activityLogsList" class="activity-logs-list">
+                                <p class="loading-state">Loading activity logs...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="spinner"></div>
+        <p id="loadingText">Loading...</p>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/settings-manager.js"></script>
+</body>
+
+</html>

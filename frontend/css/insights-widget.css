@@ -1,0 +1,439 @@
+/* ============================================
+   INSIGHTS WIDGET STYLES
+   ============================================ */
+
+.insights-widget {
+    background: white;
+    border-radius: 1rem;
+    border: 1px solid var(--gray-200);
+    overflow: hidden;
+    margin-bottom: 2rem;
+}
+
+.insights-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--gray-200);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.insights-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.insights-refresh {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.insights-refresh:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.insights-body {
+    padding: 1.5rem;
+}
+
+.insights-tabs {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid var(--gray-200);
+}
+
+.insights-tab {
+    padding: 0.75rem 1.5rem;
+    background: none;
+    border: none;
+    color: var(--gray-600);
+    font-weight: 600;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    transition: all 0.2s;
+}
+
+.insights-tab:hover {
+    color: var(--gray-900);
+}
+
+.insights-tab.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+}
+
+.insights-tab-count {
+    display: inline-block;
+    margin-left: 0.5rem;
+    padding: 0.125rem 0.5rem;
+    background: var(--gray-200);
+    border-radius: 1rem;
+    font-size: 0.75rem;
+}
+
+.insights-tab.active .insights-tab-count {
+    background: var(--primary);
+    color: white;
+}
+
+.insights-content {
+    display: none;
+}
+
+.insights-content.active {
+    display: block;
+}
+
+.insights-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.insight-card {
+    display: flex;
+    gap: 1rem;
+    padding: 1.25rem;
+    background: var(--gray-50);
+    border-radius: 0.75rem;
+    border-left: 4px solid var(--gray-300);
+    transition: all 0.2s;
+}
+
+.insight-card:hover {
+    background: var(--gray-100);
+    transform: translateX(4px);
+}
+
+.insight-card.alert {
+    border-left-color: var(--danger);
+    background: #fef2f2;
+}
+
+.insight-card.alert:hover {
+    background: #fee2e2;
+}
+
+.insight-card.suggestion {
+    border-left-color: var(--primary);
+    background: #f0f9ff;
+}
+
+.insight-card.suggestion:hover {
+    background: #dbeafe;
+}
+
+.insight-card.win {
+    border-left-color: var(--success);
+    background: #f0fdf4;
+}
+
+.insight-card.win:hover {
+    background: #dcfce7;
+}
+
+.insight-card.trend {
+    border-left-color: var(--warning);
+    background: #fffbeb;
+}
+
+.insight-card.trend:hover {
+    background: #fef3c7;
+}
+
+.insight-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.5rem;
+    flex-shrink: 0;
+    font-size: 1.25rem;
+}
+
+.insight-card.alert .insight-icon {
+    background: var(--danger);
+    color: white;
+}
+
+.insight-card.suggestion .insight-icon {
+    background: var(--primary);
+    color: white;
+}
+
+.insight-card.win .insight-icon {
+    background: var(--success);
+    color: white;
+}
+
+.insight-card.trend .insight-icon {
+    background: var(--warning);
+    color: white;
+}
+
+.insight-content-area {
+    flex: 1;
+    min-width: 0;
+}
+
+.insight-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: 0.5rem;
+}
+
+.insight-title-text {
+    font-weight: 700;
+    color: var(--gray-900);
+    font-size: 1rem;
+}
+
+.insight-priority {
+    padding: 0.25rem 0.625rem;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.insight-priority.critical {
+    background: var(--danger);
+    color: white;
+}
+
+.insight-priority.high {
+    background: var(--warning);
+    color: white;
+}
+
+.insight-priority.medium {
+    background: var(--primary);
+    color: white;
+}
+
+.insight-priority.low {
+    background: var(--gray-300);
+    color: var(--gray-700);
+}
+
+.insight-description {
+    color: var(--gray-700);
+    line-height: 1.6;
+    margin-bottom: 0.75rem;
+}
+
+.insight-recommendation {
+    padding: 0.75rem;
+    background: white;
+    border-radius: 0.5rem;
+    border-left: 3px solid var(--primary);
+    font-size: 0.875rem;
+    color: var(--gray-700);
+    margin-bottom: 0.75rem;
+}
+
+.insight-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.insight-action-btn {
+    padding: 0.5rem 1rem;
+    background: white;
+    border: 1px solid var(--gray-300);
+    border-radius: 0.5rem;
+    color: var(--gray-700);
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.insight-action-btn:hover {
+    background: var(--gray-100);
+    border-color: var(--gray-400);
+}
+
+.insight-action-btn.primary {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+.insight-action-btn.primary:hover {
+    background: var(--primary-dark);
+}
+
+.insights-empty {
+    text-align: center;
+    padding: 3rem 2rem;
+    color: var(--gray-500);
+}
+
+.insights-empty svg {
+    color: var(--gray-300);
+    margin-bottom: 1rem;
+}
+
+.insights-empty h3 {
+    font-size: 1.125rem;
+    color: var(--gray-700);
+    margin-bottom: 0.5rem;
+}
+
+.insights-loading {
+    text-align: center;
+    padding: 2rem;
+    color: var(--gray-500);
+}
+
+.insights-loading .spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--gray-200);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1rem;
+}
+
+/* PR Analysis Badge */
+.pr-analysis-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    margin-top: 1rem;
+}
+
+.pr-analysis-badge.analyzing {
+    background: #fef3c7;
+    border-color: #fbbf24;
+}
+
+.pr-analysis-badge.completed {
+    background: #dcfce7;
+    border-color: #10b981;
+}
+
+.pr-analysis-badge.error {
+    background: #fee2e2;
+    border-color: #ef4444;
+}
+
+.pr-analysis-scores {
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.score-item {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.813rem;
+}
+
+.score-value {
+    font-weight: 700;
+}
+
+.score-value.good {
+    color: var(--success);
+}
+
+.score-value.warning {
+    color: var(--warning);
+}
+
+.score-value.danger {
+    color: var(--danger);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .insights-tabs {
+        flex-wrap: wrap;
+    }
+
+    .insight-card {
+        flex-direction: column;
+    }
+
+    .insight-actions {
+        flex-direction: column;
+    }
+
+    .insight-action-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* ── Add these lines at the bottom of your existing insights-widget.css ─── */
+
+/* Time stamp & category tag inside insight cards */
+.insight-meta-time {
+    font-size: 0.75rem;
+    color: var(--gray-500);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.insight-category-tag {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    background: var(--gray-200);
+    color: var(--gray-700);
+    border-radius: 9999px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+/* Resolved button base style (reuses .insight-action-btn) */
+.btn-resolve {
+    background: white;
+    border: 1px solid var(--success);
+    color: var(--success) !important;
+}
+
+.btn-resolve:hover {
+    background: var(--success) !important;
+    color: white !important;
+}
+
+/* Spin keyframe (used by refresh button) */
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
