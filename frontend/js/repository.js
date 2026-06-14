@@ -84,6 +84,9 @@ async function loadRepositoryData() {
         // Phase 5: Initialize expertise heatmap
         initializePhase5Widgets();
 
+        // Phase 7: Initialize conflicts and dependencies
+        initializePhase7Widgets();
+
         hideLoading();
     } catch (error) {
         hideLoading();
@@ -497,5 +500,27 @@ function showPRToolsPanel(prNumber, prItem) {
             document.getElementById(`pr-reviewer-container-${prNumber}`),
             prNumber
         );
+    }
+}
+
+// =============================================================================
+// PHASE 7: Widget Initialization
+// =============================================================================
+
+function initializePhase7Widgets() {
+    if (!currentRepoId) return;
+
+    // Initialize Conflicts Tab
+    const conflictsContainer = document.getElementById('conflictsContainer');
+    if (conflictsContainer && typeof ConflictDetector !== 'undefined') {
+        conflictDetector = new ConflictDetector('conflictsContainer', currentRepoId);
+        conflictDetector.init();
+    }
+
+    // Initialize Dependencies Tab
+    const depsContainer = document.getElementById('dependenciesContainer');
+    if (depsContainer && typeof DependencyDashboard !== 'undefined') {
+        dependencyDashboard = new DependencyDashboard('dependenciesContainer', currentRepoId);
+        dependencyDashboard.init();
     }
 }

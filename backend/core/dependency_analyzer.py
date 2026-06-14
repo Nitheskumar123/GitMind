@@ -222,14 +222,14 @@ class DependencyAnalyzer:
                     'latest_safe_version': latest_version,
                     'has_breaking_changes': False,
                     'impact_score': 0,
-                    'changelog_url': pkg_info.get('changelog_url', ''),
+                    'changelog_url': pkg_info.get('changelog_url') or '',
                 }
             )
             return analysis
 
         # Fetch and parse changelog
-        changelog_text = pkg_info.get('description', '')
-        changelog_url = pkg_info.get('changelog_url', '')
+        changelog_text = pkg_info.get('description') or ''
+        changelog_url = pkg_info.get('changelog_url') or ''
 
         # Try to get GitHub releases if we have a repo URL
         github_repo = self._extract_github_repo(pkg_info)

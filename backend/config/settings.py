@@ -174,10 +174,7 @@ GITHUB_WEBHOOK_SECRET = config('GITHUB_WEBHOOK_SECRET', default='change-this-sec
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-        'LOCATION': 'redis://127.0.0.1:6379/1',
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-        },
+        'LOCATION': config('REDIS_URL', default='redis://127.0.0.1:6379/1'),
         'KEY_PREFIX': 'github_intel',
         'TIMEOUT': 900,  # 15 minutes
     }

@@ -295,6 +295,43 @@ class GitHubAPIClient:
             logger.error(f"Error posting PR comment: {e}")
             return None
 
+    def get_file_content(self, full_name, file_path):
+        """
+        Fetch the content of a specific file from the repository
+        """
+        try:
+            repo = self.client.get_repo(full_name)
+            file_content = repo.get_contents(file_path)
+            if isinstance(file_content, list):
+                return None # Path is a directory
+            return file_content.decoded_content.decode('utf-8', errors='ignore')
+        except Exception as e:
+            return None
+
+    def search_code(self, query):
+        """
+        Search code across GitHub or within a specific repository.
+        Returns a list of dictionaries with file info.
+        """
+        try:
+            results = self.client.search_code(query)
+            items = []
+            count = 0
+            for item in results:
+                if count >= 50:
+                    break
+                items.append({
+                    'name': item.name,
+                    'path': item.path,
+                    'url': item.html_url,
+                    'repository': item.repository.full_name
+                })
+                count += 1
+            return items
+        except Exception as e:
+            logger.error(f"Error searching code: {e}")
+            return []
+
     def get_repository_content(self, full_name, path=""):
         """
         Fetch all files in a repository or specific path (simple version)
