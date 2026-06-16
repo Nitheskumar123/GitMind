@@ -273,7 +273,7 @@ def sync_commits(repository_id):
         user = repository.user
 
         client = GitHubAPIClient(user.github_access_token)
-        commit_data = client.get_commits(repository.full_name)
+        commit_data = client.get_commits(repository.full_name, limit=100)
 
         for commit in commit_data:
             Commit.objects.update_or_create(
@@ -1160,21 +1160,29 @@ def check_dependency_updates_weekly():
 # =============================================================================
 
 @shared_task(bind=True, max_retries=2, default_retry_delay=120)
-def analyse_cognitive_debt(self, repo_id):
+def analyse_cognitive_debt(self, repo_id, force=False):
     """
     Analyze cognitive debt for a repository.
     Reads commit history, detects AI-authored code, and computes comprehension
     scores per file.  Uses cache-based locking to prevent duplicate runs.
+
+    Args:
+        repo_id: Repository ID
+        force: If True, clears the lock and forces a fresh analysis
     """
     import time
     from django.core.cache import cache
 
     lock_key = f"cognitive_debt_lock_{repo_id}"
+
+    if force:
+        cache.delete(lock_key)
+
     if cache.get(lock_key):
         logger.info(f"Cognitive debt analysis already running for repo {repo_id}, skipping")
         return {'skipped': True, 'reason': 'Already running'}
 
-    cache.set(lock_key, True, timeout=600)  # 10-minute lock
+    cache.set(lock_key, True, timeout=120)  # 2-minute lock (reduced from 10 min)
 
     try:
         repository = Repository.objects.get(id=repo_id)

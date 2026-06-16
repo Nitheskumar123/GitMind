@@ -1569,7 +1569,7 @@ def trigger_debt_analysis(request, repo_id):
 
         repository = Repository.objects.get(id=repo_id, user=request.user)
 
-        task = analyse_cognitive_debt.delay(repository.id)
+        task = analyse_cognitive_debt.delay(repository.id, force=True)
 
         return Response({
             'message': f'Cognitive debt analysis started for {repository.full_name}',
