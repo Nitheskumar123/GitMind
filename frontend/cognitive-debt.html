@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cognitive Debt Tracker - GitMind</title>
+    <meta name="description" content="Track how much of your codebase your team actually understands vs. what AI wrote. Identify cognitive debt before it becomes a problem.">
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/dashboard.css">
+    <link rel="stylesheet" href="/css/repository.css">
+    <link rel="stylesheet" href="/css/cognitive-debt.css?v=2">
+</head>
+
+<body>
+    <!-- Top Navigation -->
+    <nav class="top-nav">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <svg class="logo-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M12 2v20M2 12h20"></path>
+                </svg>
+                <span class="logo-text">GitMind</span>
+            </div>
+
+            <div class="nav-right">
+                <a href="/dashboard/" class="btn-back">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7" />
+                    </svg>
+                    Dashboard
+                </a>
+                <a id="backToRepoBtn" href="#" class="btn-back">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7" />
+                    </svg>
+                    Back to Repo
+                </a>
+                <div class="user-profile">
+                    <img id="userAvatar" src="" alt="User Avatar" class="user-avatar">
+                    <span id="userName" class="user-name">Loading...</span>
+                </div>
+                <button id="logoutBtn" class="btn-logout">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="repo-detail-container">
+
+        <!-- Page Header -->
+        <div class="repo-header-section" style="margin-bottom: 1.5rem;">
+            <div class="repo-title-row">
+                <div class="repo-title-info">
+                    <h1 id="pageTitle" style="display: flex; align-items: center; gap: 0.75rem;">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" style="color: var(--primary);">
+                            <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                            <path d="M2 17l10 5 10-5"></path>
+                            <path d="M2 12l10 5 10-5"></path>
+                        </svg>
+                        <span>Cognitive Debt Tracker</span>
+                    </h1>
+                </div>
+                <div class="repo-actions">
+                    <span id="lastAnalyzed" class="debt-last-analyzed">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        Not yet analyzed
+                    </span>
+                    <button id="analyzeBtn" class="btn-analyze">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <polyline points="23 4 23 10 17 10"></polyline>
+                            <polyline points="1 20 1 14 7 14"></polyline>
+                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                        </svg>
+                        Run Analysis
+                    </button>
+                </div>
+            </div>
+            <p style="color: var(--gray-500); font-size: 0.9375rem;">
+                Measures how much of your codebase the team actually understands vs. what AI wrote. 
+                Files with high AI authorship and zero human follow-up are flagged as cognitive debt.
+            </p>
+        </div>
+
+        <!-- Summary Cards -->
+        <div id="summaryCards" class="debt-summary-grid">
+            <div class="debt-summary-card critical">
+                <div class="debt-card-icon critical">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                        <line x1="12" y1="9" x2="12" y2="13"></line>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                </div>
+                <div class="debt-card-value critical" id="criticalCount">0</div>
+                <div class="debt-card-label">Critical — Nobody Understands</div>
+            </div>
+
+            <div class="debt-summary-card warning">
+                <div class="debt-card-icon warning">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                </div>
+                <div class="debt-card-value warning" id="warningCount">0</div>
+                <div class="debt-card-label">At-Risk — Limited Understanding</div>
+            </div>
+
+            <div class="debt-summary-card healthy">
+                <div class="debt-card-icon healthy">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                </div>
+                <div class="debt-card-value healthy" id="healthyCount">0</div>
+                <div class="debt-card-label">Healthy — Team Knows These</div>
+            </div>
+
+            <div class="debt-summary-card score">
+                <div class="score-gauge" id="scoreGauge">
+                    <svg width="48" height="48" viewBox="0 0 48 48">
+                        <circle class="score-gauge-track" cx="24" cy="24" r="18" />
+                        <circle class="score-gauge-fill" id="scoreGaugeFill" cx="24" cy="24" r="18"
+                            stroke-dasharray="113.1" stroke-dashoffset="113.1" />
+                    </svg>
+                    <div class="score-gauge-text" id="overallScore">0%</div>
+                </div>
+                <div class="debt-card-label">Overall Comprehension Score</div>
+            </div>
+        </div>
+
+        <!-- Alerts Panel (only shown if red files exist) -->
+        <div id="alertsPanel" class="debt-alerts-panel" style="display: none;">
+            <div class="debt-alerts-header">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                <h3>Critical Files — Immediate Review Needed</h3>
+            </div>
+            <div id="alertsList"></div>
+        </div>
+
+        <!-- Filter Bar + File List -->
+        <div class="debt-action-bar">
+            <h2>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                </svg>
+                File Comprehension Map
+            </h2>
+            <div class="debt-filter-group">
+                <button class="debt-filter-btn active" data-filter="all">
+                    All <span class="count" id="filterAllCount">0</span>
+                </button>
+                <button class="debt-filter-btn" data-filter="red">
+                    🔴 Critical <span class="count" id="filterRedCount">0</span>
+                </button>
+                <button class="debt-filter-btn" data-filter="amber">
+                    🟡 At-Risk <span class="count" id="filterAmberCount">0</span>
+                </button>
+                <button class="debt-filter-btn" data-filter="green">
+                    🟢 Healthy <span class="count" id="filterGreenCount">0</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="fileListContainer">
+            <!-- File rows rendered by JS -->
+        </div>
+
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/cognitive-debt.js?v=2"></script>
+
+    <script>
+        // Set back-to-repo link
+        const repoId = new URLSearchParams(window.location.search).get('id');
+        const backBtn = document.getElementById('backToRepoBtn');
+        if (backBtn && repoId) {
+            backBtn.href = `/repository-detail.html?id=${repoId}`;
+        }
+
+        // Load user profile info (avatar + username)
+        (async function () {
+            try {
+                const isAuth = await checkAuth();
+                if (!isAuth) {
+                    window.location.href = '/';
+                    return;
+                }
+                const user = await getCurrentUser();
+                if (user) {
+                    document.getElementById('userName').textContent = user.github_login || user.username;
+                    document.getElementById('userAvatar').src = user.github_avatar_url || 'https://via.placeholder.com/40';
+                }
+            } catch (e) {
+                console.error('Failed to load user profile:', e);
+            }
+
+            // Logout button
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', handleLogout);
+            }
+        })();
+    </script>
+</body>
+
+</html>

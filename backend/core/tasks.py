@@ -162,6 +162,12 @@ def sync_repository_data(repository_id):
         sync_commits(repository_id)
         sync_contributors(repository_id)
 
+        # Phase 8: Trigger cognitive debt analysis after sync
+        try:
+            analyse_cognitive_debt.delay(repository_id)
+        except Exception as debt_err:
+            logger.warning(f"Cognitive debt auto-trigger failed (non-fatal): {debt_err}")
+
         logger.info(f"Successfully synced repository: {repository.full_name}")
         return True
 
@@ -1147,3 +1153,64 @@ def check_dependency_updates_weekly():
     except Exception as e:
         logger.error(f"Weekly dependency check failed: {e}")
         return {'success': False, 'error': str(e)}
+
+
+# =============================================================================
+# PHASE 8: Cognitive Debt Analysis Task
+# =============================================================================
+
+@shared_task(bind=True, max_retries=2, default_retry_delay=120)
+def analyse_cognitive_debt(self, repo_id):
+    """
+    Analyze cognitive debt for a repository.
+    Reads commit history, detects AI-authored code, and computes comprehension
+    scores per file.  Uses cache-based locking to prevent duplicate runs.
+    """
+    import time
+    from django.core.cache import cache
+
+    lock_key = f"cognitive_debt_lock_{repo_id}"
+    if cache.get(lock_key):
+        logger.info(f"Cognitive debt analysis already running for repo {repo_id}, skipping")
+        return {'skipped': True, 'reason': 'Already running'}
+
+    cache.set(lock_key, True, timeout=600)  # 10-minute lock
+
+    try:
+        repository = Repository.objects.get(id=repo_id)
+        from .cognitive_debt_analyzer import CognitiveDebtAnalyzer
+
+        start_time = time.time()
+        analyzer = CognitiveDebtAnalyzer(repository)
+        result = analyzer.run()
+        duration = time.time() - start_time
+
+        log_automation_action(
+            action_type='insight_generation',
+            repository=repository,
+            user=repository.user,
+            trigger='auto',
+            description=f"Cognitive debt analysis for {repository.full_name}",
+            status='success',
+            task_id=self.request.id,
+        )
+
+        logger.info(
+            f"Cognitive debt analysis complete for {repository.full_name}: "
+            f"{result['files_analyzed']} files in {duration:.1f}s"
+        )
+
+        return {
+            'success': True,
+            **result,
+            'duration': round(duration, 2),
+        }
+
+    except Repository.DoesNotExist:
+        logger.error(f"Repository {repo_id} not found for cognitive debt analysis")
+        return {'success': False, 'error': 'Repository not found'}
+    except Exception as e:
+        logger.error(f"Cognitive debt analysis failed for repo {repo_id}: {e}")
+        self.retry(countdown=120, exc=e)
+    finally:
+        cache.delete(lock_key)

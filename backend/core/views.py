@@ -1472,3 +1472,109 @@ def dependency_impact_report(request, repo_id):
         })
     except Repository.DoesNotExist:
         return Response({'error': 'Repository not found'}, status=404)
+
+
+# ============================================================================
+# PHASE 8: COGNITIVE DEBT TRACKING
+# ============================================================================
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def repository_cognitive_debt(request, repo_id):
+    """
+    GET /api/repositories/<repo_id>/debt/
+    Returns all file comprehension scores for a repository, sorted worst-first.
+    """
+    try:
+        from .models import FileComprehensionScore
+        from .serializers import FileComprehensionScoreSerializer
+
+        repository = Repository.objects.get(id=repo_id, user=request.user)
+
+        # Optional filter by risk level
+        risk = request.query_params.get('risk', None)
+        scores = FileComprehensionScore.objects.filter(repository=repository)
+        if risk in ('red', 'amber', 'green'):
+            scores = scores.filter(risk_level=risk)
+
+        scores = scores.order_by('comprehension_score')
+
+        serializer = FileComprehensionScoreSerializer(scores, many=True)
+        return Response(serializer.data)
+    except Repository.DoesNotExist:
+        return Response({'error': 'Repository not found'}, status=404)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def cognitive_debt_summary(request, repo_id):
+    """
+    GET /api/repositories/<repo_id>/debt/summary/
+    Returns an aggregated summary for the dashboard header cards.
+    """
+    try:
+        from .models import FileComprehensionScore
+
+        repository = Repository.objects.get(id=repo_id, user=request.user)
+        scores = FileComprehensionScore.objects.filter(repository=repository)
+
+        total = scores.count()
+        red = scores.filter(risk_level='red').count()
+        amber = scores.filter(risk_level='amber').count()
+        green = scores.filter(risk_level='green').count()
+
+        # Compute overall repo comprehension score (average)
+        if total > 0:
+            from django.db.models import Avg
+            avg_score = scores.aggregate(avg=Avg('comprehension_score'))['avg']
+            overall_score = round(avg_score or 0)
+        else:
+            overall_score = 0
+
+        # Get the worst files for alerts
+        critical_files = scores.filter(risk_level='red').order_by('comprehension_score')[:5]
+        critical_alerts = []
+        for f in critical_files:
+            critical_alerts.append({
+                'file_path': f.file_path,
+                'score': f.comprehension_score,
+                'ai_pct': f.ai_authorship_pct,
+                'suggested_reviewer': f.suggested_reviewer,
+            })
+
+        last_analyzed = scores.order_by('-last_analyzed_at').first()
+
+        return Response({
+            'total_files': total,
+            'red_files': red,
+            'amber_files': amber,
+            'green_files': green,
+            'overall_score': overall_score,
+            'critical_alerts': critical_alerts,
+            'last_analyzed_at': last_analyzed.last_analyzed_at if last_analyzed else None,
+        })
+    except Repository.DoesNotExist:
+        return Response({'error': 'Repository not found'}, status=404)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def trigger_debt_analysis(request, repo_id):
+    """
+    POST /api/repositories/<repo_id>/debt/analyse/
+    Manually trigger cognitive debt analysis.
+    """
+    try:
+        from .tasks import analyse_cognitive_debt
+
+        repository = Repository.objects.get(id=repo_id, user=request.user)
+
+        task = analyse_cognitive_debt.delay(repository.id)
+
+        return Response({
+            'message': f'Cognitive debt analysis started for {repository.full_name}',
+            'task_id': task.id,
+            'repository_id': repository.id,
+        }, status=202)
+    except Repository.DoesNotExist:
+        return Response({'error': 'Repository not found'}, status=404)

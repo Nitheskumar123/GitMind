@@ -87,6 +87,9 @@ async function loadRepositoryData() {
         // Phase 7: Initialize conflicts and dependencies
         initializePhase7Widgets();
 
+        // Phase 8: Load cognitive debt badge count
+        loadCognitiveDebtBadge();
+
         hideLoading();
     } catch (error) {
         hideLoading();
@@ -306,6 +309,12 @@ async function syncRepository() {
 }
 
 function switchTab(tabName) {
+    // Phase 8: Cognitive Debt tab navigates to a dedicated page
+    if (tabName === 'cognitive-debt') {
+        window.location.href = `/cognitive-debt/?id=${currentRepoId}`;
+        return;
+    }
+
     // Update tab buttons
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.remove('active');
@@ -522,5 +531,24 @@ function initializePhase7Widgets() {
     if (depsContainer && typeof DependencyDashboard !== 'undefined') {
         dependencyDashboard = new DependencyDashboard('dependenciesContainer', currentRepoId);
         dependencyDashboard.init();
+    }
+}
+
+// =============================================================================
+// PHASE 8: Cognitive Debt Badge
+// =============================================================================
+
+async function loadCognitiveDebtBadge() {
+    if (!currentRepoId) return;
+    try {
+        const summary = await apiRequest(`/api/repositories/${currentRepoId}/debt/summary/`);
+        const badge = document.getElementById('debtRedCount');
+        if (badge && summary.red_files > 0) {
+            badge.textContent = summary.red_files;
+            badge.style.display = 'inline-block';
+        }
+    } catch (err) {
+        // Silently fail — cognitive debt data may not exist yet
+        console.debug('Cognitive debt badge: no data yet');
     }
 }

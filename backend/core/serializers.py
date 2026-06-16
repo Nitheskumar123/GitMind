@@ -6,7 +6,8 @@ from .models import (
     PRAnalysis, CodeInsight, DocumentationGeneration, UserPreferences, RepositorySettings, 
     WebhookConfiguration, AutomationLog, CostTracking,
     PRDescriptionTemplate, CodeOwnership, ReviewerRecommendation, DeveloperExpertise,
-    ConflictDetection, SymbolMap, DependencyAnalysis, DependencyUpdate
+    ConflictDetection, SymbolMap, DependencyAnalysis, DependencyUpdate,
+    FileComprehensionScore,
 )
 
 
@@ -678,3 +679,26 @@ class DependencyUpdateSerializer(serializers.ModelSerializer):
 
     def get_repository_name(self, obj):
         return obj.repository.full_name
+
+
+# =============================================================================
+# PHASE 8 SERIALIZERS: Cognitive Debt Tracking
+# =============================================================================
+
+class FileComprehensionScoreSerializer(serializers.ModelSerializer):
+    """Serializer for per-file cognitive debt scores."""
+    repository_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = FileComprehensionScore
+        fields = [
+            'id', 'repository', 'repository_name', 'file_path',
+            'ai_authorship_pct', 'human_edit_count', 'total_commit_count',
+            'unique_contributors', 'comprehension_score', 'risk_level',
+            'last_human_edit_at', 'suggested_reviewer',
+            'last_analyzed_at', 'created_at',
+        ]
+        read_only_fields = fields
+
+    def get_repository_name(self, obj):
+        return obj.repository.full_name

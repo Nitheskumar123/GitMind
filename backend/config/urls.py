@@ -14,6 +14,7 @@ urlpatterns = [
     path('ai-chat/', TemplateView.as_view(template_name='ai-chat.html'), name='ai_chat'),
     path('repository-detail.html', TemplateView.as_view(template_name='repository-detail.html'), name='repository-detail'),
     path('settings-panel.html', TemplateView.as_view(template_name='settings-panel.html'), name='settings-panel'),
+    path('cognitive-debt/', TemplateView.as_view(template_name='cognitive-debt.html'), name='cognitive-debt'),
 ]
 
 # Serve frontend assets in development

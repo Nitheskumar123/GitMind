@@ -123,4 +123,14 @@ urlpatterns = [
          views.dependency_impact_report, name='dependency_impact_report'),
     path('repositories/<int:repo_id>/dependencies/<str:package_name>/',
          views.dependency_detail, name='dependency_detail'),
+
+    # ==========================================================================
+    # PHASE 8: Cognitive Debt Tracking
+    # ==========================================================================
+    path('repositories/<int:repo_id>/debt/',
+         views.repository_cognitive_debt, name='repository_cognitive_debt'),
+    path('repositories/<int:repo_id>/debt/summary/',
+         views.cognitive_debt_summary, name='cognitive_debt_summary'),
+    path('repositories/<int:repo_id>/debt/analyse/',
+         views.trigger_debt_analysis, name='trigger_debt_analysis'),
 ]

@@ -1108,3 +1108,89 @@ class DependencyUpdate(models.Model):
     def __str__(self):
         status = "Applied" if self.applied else "Pending"
         return f"{self.package_name} {self.from_version} → {self.to_version} ({status})"
+
+
+# =============================================================================
+# PHASE 8 MODELS: Cognitive Debt Tracking
+# =============================================================================
+
+class FileComprehensionScore(models.Model):
+    """
+    Per-file cognitive debt score.
+    Tracks how well the team understands each file based on git history signals:
+    AI authorship, human edits, and contributor spread.
+    """
+    RISK_LEVEL_CHOICES = [
+        ('green', 'Well Understood'),
+        ('amber', 'Partial Understanding'),
+        ('red', 'Nobody Understands'),
+    ]
+
+    repository = models.ForeignKey(
+        Repository, on_delete=models.CASCADE, related_name='comprehension_scores'
+    )
+
+    # File identification
+    file_path = models.CharField(max_length=500)
+
+    # Signal 1: AI authorship
+    ai_authorship_pct = models.FloatField(
+        default=0.0,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        help_text="Estimated percentage of code written by AI (0-100)"
+    )
+
+    # Signal 2: Human engagement
+    human_edit_count = models.IntegerField(
+        default=0,
+        help_text="Number of meaningful human edits after initial commit"
+    )
+    total_commit_count = models.IntegerField(
+        default=0,
+        help_text="Total commits touching this file"
+    )
+
+    # Signal 3: Knowledge spread
+    unique_contributors = models.IntegerField(
+        default=0,
+        help_text="Number of unique developers who meaningfully touched this file"
+    )
+
+    # Computed score
+    comprehension_score = models.IntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        help_text="Final comprehension score (0=nobody understands, 100=well understood)"
+    )
+    risk_level = models.CharField(
+        max_length=10, choices=RISK_LEVEL_CHOICES, default='green'
+    )
+
+    # Recency
+    last_human_edit_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text="When the last human (non-AI) edit occurred"
+    )
+
+    # Suggested reviewer (who touched it most recently / most often)
+    suggested_reviewer = models.CharField(
+        max_length=200, blank=True,
+        help_text="Best person to review/document this file"
+    )
+
+    # Timestamps
+    last_analyzed_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'file_comprehension_scores'
+        unique_together = ['repository', 'file_path']
+        ordering = ['comprehension_score']
+        indexes = [
+            models.Index(fields=['repository', 'risk_level']),
+            models.Index(fields=['comprehension_score']),
+            models.Index(fields=['-last_analyzed_at']),
+        ]
+
+    def __str__(self):
+        return f"{self.file_path} → {self.comprehension_score}/100 ({self.risk_level})"
