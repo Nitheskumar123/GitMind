@@ -46,6 +46,7 @@ class AICodeAnalyzer:
         2. Performance: Identify N+1 queries, inefficient loops, or heavy memory usage.
         3. Code Quality: Detect anti-patterns, DRY violations, and readability issues.
         4. Complexity: Estimate cyclomatic complexity and cognitive load.
+        5. Intent Enforcement: You will be provided with "Documented Intents" - business rules or constraints previously documented by developers. If the PR modifies or violates these intents, you MUST raise a critical warning. If 'review_required' is true, changing it without clear justification is a high severity violation.
         
         Output Format:
         You MUST respond in valid JSON format. Do not include any text outside the JSON block.
@@ -60,6 +61,9 @@ class AICodeAnalyzer:
             "code_smells": [
                 {"line": 0, "issue": "desc", "recommendation": "fix"}
             ],
+            "intent_violations": [
+                {"severity": "critical|high", "line": 0, "issue": "desc", "recommendation": "fix"}
+            ],
             "positive_points": ["List of good things"],
             "complexity_score": 0,
             "estimated_review_time": "X minutes",
@@ -68,6 +72,18 @@ class AICodeAnalyzer:
         }
         """
 
+        # Format documented intents into a string
+        intents_str = "None"
+        documented_intents = pr_context.get('documented_intents', [])
+        if documented_intents:
+            intents_str = ""
+            for intent in documented_intents:
+                intents_str += f"- File: {intent['file_path']} (Line {intent['line_number']})\n"
+                intents_str += f"  Value: {intent['detected_value']}\n"
+                intents_str += f"  Intent/Constraint: {intent['intent']}\n"
+                intents_str += f"  Type: {intent['constraint_type']}\n"
+                intents_str += f"  Requires Review: {intent['review_required']}\n"
+
         user_message = f"""
         Analyze this pull request:
         PR Title: {pr_context.get('title', 'N/A')}
@@ -75,6 +91,9 @@ class AICodeAnalyzer:
         Files Changed: {pr_context.get('files_changed', 0)}
         Additions: +{pr_context.get('additions', 0)}
         Deletions: -{pr_context.get('deletions', 0)}
+        
+        Documented Intents (Business Rules/Constraints):
+        {intents_str}
         
         Diff Content:
         {diff_content[:15000]}  # Increased limit for Groq's context window
@@ -96,6 +115,20 @@ class AICodeAnalyzer:
 
             raw_content = chat_completion.choices[0].message.content
             analysis = json.loads(raw_content)
+            
+            # Phase 10: Merge intent_violations into security_issues to avoid DB schema migration
+            intent_violations = analysis.get('intent_violations', [])
+            if intent_violations:
+                if 'security_issues' not in analysis:
+                    analysis['security_issues'] = []
+                for violation in intent_violations:
+                    # Prefix to extract later in generate_pr_comment
+                    violation['issue'] = f"🛡️ INTENT VIOLATION: {violation.get('issue')}"
+                    analysis['security_issues'].append(violation)
+                    
+                    # Deduct scores heavily for intent violations
+                    analysis['security_score'] = max(0, analysis.get('security_score', 100) - 20)
+                    analysis['quality_score'] = max(0, analysis.get('quality_score', 100) - 20)
             
             # Post-processing stats
             tokens_used = chat_completion.usage.total_tokens
@@ -160,13 +193,33 @@ class AICodeAnalyzer:
         comment = "## 🤖 AI Code Review (Powered by Groq)\n\n"
         comment += f"> **Summary:** {analysis.get('summary', 'No summary available.')}\n\n"
 
-        # Security Section
+        # Intent & Security Section
         sec_issues = analysis.get('security_issues', [])
-        if sec_issues:
+        
+        # Separate normal security issues from intent violations
+        intent_issues = []
+        normal_sec_issues = []
+        for issue in sec_issues:
+            if issue.get('issue', '').startswith('🛡️ INTENT VIOLATION:'):
+                intent_issues.append(issue)
+            else:
+                normal_sec_issues.append(issue)
+                
+        if intent_issues:
+            comment += "### 🛡️ Intent Enforcement Warnings\n"
+            comment += "| Severity | Line | Issue | Recommendation |\n"
+            comment += "|:---:|:---:|:---|:---|\n"
+            for issue in intent_issues:
+                clean_issue = issue.get('issue').replace('🛡️ INTENT VIOLATION:', '').strip()
+                sev_icon = "🚨" if issue.get('severity') in ['critical', 'high'] else "⚠️"
+                comment += f"| {sev_icon} {issue.get('severity', 'high').upper()} | {issue.get('line')} | **{clean_issue}** | {issue.get('recommendation')} |\n"
+            comment += "\n"
+
+        if normal_sec_issues:
             comment += "### 🔴 Security Vulnerabilities\n"
             comment += "| Severity | Line | Issue | Recommendation |\n"
             comment += "|:---:|:---:|:---|:---|\n"
-            for issue in sec_issues:
+            for issue in normal_sec_issues:
                 sev_icon = "🛑" if issue.get('severity') == 'high' else "⚠️"
                 comment += f"| {sev_icon} {issue.get('severity').upper()} | {issue.get('line')} | {issue.get('issue')} | {issue.get('recommendation')} |\n"
             comment += "\n"

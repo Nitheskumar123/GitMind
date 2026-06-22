@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intent Capture - GitMind</title>
+    <meta name="description" content="Capture the reasoning behind AI-generated code decisions before they're lost forever.">
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <link rel="stylesheet" href="/css/dashboard.css">
+    <link rel="stylesheet" href="/css/intent-capture.css">
+</head>
+
+<body>
+    <!-- Top Navigation -->
+    <nav class="top-nav">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <svg class="logo-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M12 2v20M2 12h20"></path>
+                </svg>
+                <span class="logo-text">GitMind</span>
+            </div>
+
+            <div class="nav-right">
+                <a href="/dashboard/" class="btn-back">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7" />
+                    </svg>
+                    Back to Dashboard
+                </a>
+                <div class="user-profile">
+                    <img id="userAvatar" src="" alt="User Avatar" class="user-avatar">
+                    <span id="userName" class="user-name">Loading...</span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="intent-capture-container">
+        <!-- Header -->
+        <div class="intent-header">
+            <div class="intent-header-icon">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                </svg>
+            </div>
+            <div class="intent-header-text">
+                <h1 id="intentTitle">Intent Capture</h1>
+                <p id="intentSubtitle">Help future developers understand the decisions in this code</p>
+            </div>
+            <div class="intent-header-stats">
+                <div class="intent-stat">
+                    <span class="intent-stat-value" id="pendingCount">0</span>
+                    <span class="intent-stat-label">Pending</span>
+                </div>
+                <div class="intent-stat intent-stat-success">
+                    <span class="intent-stat-value" id="capturedCount">0</span>
+                    <span class="intent-stat-label">Captured</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="intent-progress-bar">
+            <div class="intent-progress-fill" id="progressFill" style="width: 0%"></div>
+        </div>
+        <p class="intent-progress-text" id="progressText">Loading flags...</p>
+
+        <!-- Flags Container -->
+        <div id="flagsContainer" class="flags-container">
+            <div class="loading-state">
+                <div class="spinner"></div>
+                <p>Loading intent flags...</p>
+            </div>
+        </div>
+
+        <!-- All Done State -->
+        <div id="allDoneState" class="all-done-state hidden">
+            <div class="all-done-icon">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M22 11.08V12a10 10 0 11-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+            </div>
+            <h2>All Intent Captured! 🎉</h2>
+            <p>Every decision in this PR now has a documented reason. Future developers will thank you.</p>
+            <a href="/dashboard/" class="btn-primary">Back to Dashboard</a>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/intent.js"></script>
+</body>
+
+</html>

@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 
 class User(AbstractUser):
@@ -1194,3 +1195,107 @@ class FileComprehensionScore(models.Model):
 
     def __str__(self):
         return f"{self.file_path} → {self.comprehension_score}/100 ({self.risk_level})"
+
+
+# =============================================================================
+# PHASE 9 MODELS: Intent Debt Detection
+# =============================================================================
+
+class IntentFlag(models.Model):
+    """
+    Stores one row for every suspicious decision detected in AI-written code.
+    Each row is a question the developer needs to answer.
+    """
+    FLAG_TYPE_CHOICES = [
+        ('magic_number', 'Magic Number'),
+        ('timeout', 'Timeout / Limit'),
+        ('threshold', 'Conditional Threshold'),
+        ('algorithm_choice', 'Algorithm Choice'),
+        ('string_assumption', 'String Assumption'),
+    ]
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('captured', 'Captured'),
+        ('dismissed', 'Dismissed'),
+    ]
+
+    repository = models.ForeignKey(
+        Repository, on_delete=models.CASCADE, related_name='intent_flags'
+    )
+    pull_request = models.ForeignKey(
+        PullRequest, on_delete=models.CASCADE, related_name='intent_flags',
+        null=True, blank=True,
+    )
+
+    # Location
+    file_path = models.CharField(max_length=500)
+    line_number = models.IntegerField(default=0)
+
+    # Detection details
+    flag_type = models.CharField(max_length=30, choices=FLAG_TYPE_CHOICES)
+    detected_value = models.CharField(max_length=255)
+    question = models.TextField(help_text="Auto-generated question for the developer")
+    code_snippet = models.TextField(blank=True, help_text="The line of code containing the flagged value")
+
+    # AI-detection confidence
+    ai_confidence = models.FloatField(
+        default=0.0,
+        validators=[MinValueValidator(0), MaxValueValidator(1)],
+        help_text="Confidence that this code was AI-generated (0-1)"
+    )
+
+    # Status
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'intent_flags'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['repository', 'status']),
+            models.Index(fields=['pull_request', 'status']),
+            models.Index(fields=['-created_at']),
+        ]
+
+    def __str__(self):
+        return f"[{self.flag_type}] {self.file_path}:{self.line_number} — {self.detected_value}"
+
+
+class IntentRecord(models.Model):
+    """
+    Stores the developer's actual answer for a flagged decision.
+    This is the knowledge that travels with the code forever.
+    """
+    CONSTRAINT_TYPE_CHOICES = [
+        ('legal', 'Legal Requirement'),
+        ('business_rule', 'Business Rule'),
+        ('performance', 'Performance Decision'),
+        ('security', 'Security Policy'),
+        ('ux', 'UX / Design Decision'),
+        ('other', 'Other'),
+    ]
+
+    flag = models.OneToOneField(
+        IntentFlag, on_delete=models.CASCADE, related_name='intent_record'
+    )
+    author = models.CharField(max_length=200, help_text="Developer who answered")
+
+    # The answer
+    intent_text = models.TextField(help_text="Developer's explanation in plain English")
+    constraint_type = models.CharField(max_length=20, choices=CONSTRAINT_TYPE_CHOICES, default='other')
+    review_required = models.BooleanField(
+        default=False,
+        help_text="Should this be reviewed before changing?"
+    )
+
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'intent_records'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Intent for {self.flag.file_path}:{self.flag.line_number} by {self.author}"

@@ -117,14 +117,35 @@ function getScoreClass(score) {
 }
 
 async function triggerAnalysis(prNumber, repoId, btn) {
-    btn.textContent = '⏳ Analyzing...';
+    btn.textContent = '⏳ Analyzing... (can take up to 30s)';
     btn.disabled = true;
     try {
         await apiRequest(
             `/api/repositories/${repoId}/pulls/${prNumber}/analyze/`, 'POST'
         );
-        showToast('Analysis started! Refresh in ~15 seconds', 'success');
-        setTimeout(() => initializePRIndicators(), 15000);
+        showToast('Analysis started! Waiting for results...', 'success');
+
+        // Poll for results every 5 seconds (up to 12 times = 60s max)
+        let attempts = 0;
+        const pollInterval = setInterval(async () => {
+            attempts++;
+            try {
+                const analysis = await apiRequest(`/api/repositories/${repoId}/pulls/${prNumber}/analysis/`);
+                if (analysis && analysis.security_score !== undefined) {
+                    clearInterval(pollInterval);
+                    showToast('Analysis complete! ✅', 'success');
+                    initializePRIndicators(); // Re-render the slot
+                }
+            } catch (e) {
+                if (attempts >= 12) {
+                    clearInterval(pollInterval);
+                    showToast('Analysis took too long. Refresh later.', 'warning');
+                    btn.textContent = '🤖 Analyze with AI';
+                    btn.disabled = false;
+                }
+            }
+        }, 5000);
+
     } catch (e) {
         showToast('Failed to start analysis', 'error');
         btn.textContent = '🤖 Analyze with AI';

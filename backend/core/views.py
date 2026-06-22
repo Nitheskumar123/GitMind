@@ -1578,3 +1578,230 @@ def trigger_debt_analysis(request, repo_id):
         }, status=202)
     except Repository.DoesNotExist:
         return Response({'error': 'Repository not found'}, status=404)
+
+
+# ============================================================================
+# PHASE 9: INTENT DEBT DETECTION
+# ============================================================================
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_intent_flags(request, repo_id, pr_number):
+    """
+    GET /api/repositories/<repo_id>/pulls/<pr_number>/intent-flags/
+    Returns all IntentFlag rows for a specific PR.
+    """
+    try:
+        from .models import IntentFlag
+        from .serializers import IntentFlagSerializer
+
+        repository = Repository.objects.get(id=repo_id, user=request.user)
+        pr = repository.pull_requests.get(number=pr_number)
+
+        status_filter = request.query_params.get('status', None)
+        flags = IntentFlag.objects.filter(pull_request=pr)
+        if status_filter in ('pending', 'captured', 'dismissed'):
+            flags = flags.filter(status=status_filter)
+
+        serializer = IntentFlagSerializer(flags, many=True)
+        return Response(serializer.data)
+    except (Repository.DoesNotExist, PullRequest.DoesNotExist):
+        return Response({'error': 'PR not found'}, status=404)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def capture_intent(request, flag_id):
+    """
+    POST /api/intent-flags/<flag_id>/capture/
+    Receives the developer's answer for one flag and saves it as IntentRecord.
+    """
+    try:
+        from .models import IntentFlag, IntentRecord
+        from .serializers import IntentRecordSerializer
+
+        flag = IntentFlag.objects.get(id=flag_id, repository__user=request.user)
+
+        intent_text = request.data.get('intent_text', '').strip()
+        if not intent_text:
+            return Response({'error': 'intent_text is required'}, status=400)
+
+        constraint_type = request.data.get('constraint_type', 'other')
+        review_required = request.data.get('review_required', False)
+        author = request.user.github_login or request.user.username
+
+        # Create or update the intent record
+        record, created = IntentRecord.objects.update_or_create(
+            flag=flag,
+            defaults={
+                'author': author,
+                'intent_text': intent_text,
+                'constraint_type': constraint_type,
+                'review_required': review_required,
+            }
+        )
+
+        # Mark the flag as captured
+        flag.status = 'captured'
+        flag.save()
+
+        serializer = IntentRecordSerializer(record)
+        return Response(serializer.data, status=201 if created else 200)
+
+    except IntentFlag.DoesNotExist:
+        return Response({'error': 'Intent flag not found'}, status=404)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def dismiss_intent(request, flag_id):
+    """
+    POST /api/intent-flags/<flag_id>/dismiss/
+    Mark a flag as dismissed (not relevant).
+    """
+    try:
+        from .models import IntentFlag
+
+        flag = IntentFlag.objects.get(id=flag_id, repository__user=request.user)
+        flag.status = 'dismissed'
+        flag.save()
+
+        return Response({'message': 'Flag dismissed'}, status=200)
+    except IntentFlag.DoesNotExist:
+        return Response({'error': 'Intent flag not found'}, status=404)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_file_intent(request, repo_id):
+    """
+    GET /api/repositories/<repo_id>/file-intent/?path=src/discount.js
+    Returns all captured IntentRecords for lines in a given file.
+    """
+    try:
+        from .models import IntentFlag, IntentRecord
+        from .serializers import IntentRecordSerializer
+
+        repository = Repository.objects.get(id=repo_id, user=request.user)
+        file_path = request.query_params.get('path', '')
+
+        flags = IntentFlag.objects.filter(
+            repository=repository,
+            status='captured',
+        )
+        if file_path:
+            flags = flags.filter(file_path=file_path)
+
+        records = IntentRecord.objects.filter(flag__in=flags).select_related('flag')
+        serializer = IntentRecordSerializer(records, many=True)
+        return Response(serializer.data)
+
+    except Repository.DoesNotExist:
+        return Response({'error': 'Repository not found'}, status=404)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_intent_summary(request, repo_id):
+    """
+    GET /api/repositories/<repo_id>/intent-summary/
+    Returns aggregated intent debt summary for dashboard display.
+    """
+    try:
+        from .models import IntentFlag
+
+        repository = Repository.objects.get(id=repo_id, user=request.user)
+        flags = IntentFlag.objects.filter(repository=repository)
+
+        total = flags.count()
+        pending = flags.filter(status='pending').count()
+        captured = flags.filter(status='captured').count()
+        dismissed = flags.filter(status='dismissed').count()
+
+        # Group pending by PR
+        pending_by_pr = {}
+        for flag in flags.filter(status='pending').select_related('pull_request'):
+            pr_num = flag.pull_request.number if flag.pull_request else 0
+            pr_title = flag.pull_request.title if flag.pull_request else 'No PR'
+            key = pr_num
+            if key not in pending_by_pr:
+                pending_by_pr[key] = {
+                    'pr_number': pr_num,
+                    'pr_title': pr_title,
+                    'count': 0,
+                }
+            pending_by_pr[key]['count'] += 1
+
+        return Response({
+            'total_flags': total,
+            'pending_flags': pending,
+            'captured_flags': captured,
+            'dismissed_flags': dismissed,
+            'pending_by_pr': list(pending_by_pr.values()),
+            'capture_rate': round((captured / total * 100) if total > 0 else 0, 1),
+        })
+
+    except Repository.DoesNotExist:
+        return Response({'error': 'Repository not found'}, status=404)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def trigger_intent_scan(request, repo_id):
+    """
+    POST /api/repositories/<repo_id>/intent-scan/
+    Manually trigger intent debt scan for a repository.
+    """
+    try:
+        from .tasks import detect_intent_flags
+
+        repository = Repository.objects.get(id=repo_id, user=request.user)
+
+        task = detect_intent_flags.delay(repository.id)
+
+        return Response({
+            'message': f'Intent debt scan started for {repository.full_name}',
+            'task_id': task.id,
+            'repository_id': repository.id,
+        }, status=202)
+
+    except Repository.DoesNotExist:
+        return Response({'error': 'Repository not found'}, status=404)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user_pending_intents(request):
+    """
+    GET /api/intent-flags/pending/
+    Returns count of pending intent flags across all user's repos.
+    Used for the dashboard notification banner.
+    """
+    from .models import IntentFlag
+
+    flags = IntentFlag.objects.filter(
+        repository__user=request.user,
+        status='pending'
+    )
+
+    total = flags.count()
+
+    # Group by PR
+    prs_with_pending = {}
+    for flag in flags.select_related('pull_request', 'repository'):
+        if flag.pull_request:
+            key = flag.pull_request.id
+            if key not in prs_with_pending:
+                prs_with_pending[key] = {
+                    'repo_id': flag.repository.id,
+                    'repo_name': flag.repository.full_name,
+                    'pr_number': flag.pull_request.number,
+                    'pr_title': flag.pull_request.title,
+                    'count': 0,
+                }
+            prs_with_pending[key]['count'] += 1
+
+    return Response({
+        'total_pending': total,
+        'prs': list(prs_with_pending.values()),
+    })
