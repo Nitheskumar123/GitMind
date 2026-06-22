@@ -2,7 +2,7 @@
 
 function applyDiscount(cartTotal, user) {
     // 1. Conditional Threshold (Why 299.99?)
-    if (cartTotal > 299.99) {
+    if (cartTotal > 399.99) {
         // 2. Multiplier (Why 0.15?)
         return cartTotal - (cartTotal * 0.15);
     }
