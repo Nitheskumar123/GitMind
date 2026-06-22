@@ -39,6 +39,31 @@ class CodeReviewer:
             logger.error("Failed to fetch PR diff")
             return None
         
+        # Phase 10: Fetch Intent Records for changed files
+        documented_intents = []
+        try:
+            from .models import IntentRecord
+            pr_files = client.get_pull_request_files(self.repository.full_name, self.pr.number)
+            if pr_files:
+                changed_files = [f.get('filename') for f in pr_files if f.get('filename')]
+                records = IntentRecord.objects.filter(
+                    flag__repository=self.repository,
+                    flag__file_path__in=changed_files
+                ).select_related('flag')
+                
+                for record in records:
+                    documented_intents.append({
+                        'file_path': record.flag.file_path,
+                        'line_number': record.flag.line_number,
+                        'detected_value': record.flag.detected_value,
+                        'intent': record.intent_text,
+                        'constraint_type': record.constraint_type,
+                        'review_required': record.review_required,
+                        'author': record.author
+                    })
+        except Exception as e:
+            logger.warning(f"Failed to fetch intent records for PR analysis: {e}")
+
         # Prepare PR context
         pr_context = {
             'title': self.pr.title,
@@ -46,6 +71,7 @@ class CodeReviewer:
             'files_changed': self.pr.changed_files,
             'additions': self.pr.additions,
             'deletions': self.pr.deletions,
+            'documented_intents': documented_intents,
         }
         
         # Run AI analysis

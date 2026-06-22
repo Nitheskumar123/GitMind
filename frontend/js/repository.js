@@ -90,6 +90,10 @@ async function loadRepositoryData() {
         // Phase 8: Load cognitive debt badge count
         loadCognitiveDebtBadge();
 
+        // Phase 9: Load intent debt badge count + PR intent badges
+        loadIntentDebtBadge();
+        loadFileIntents();
+
         hideLoading();
     } catch (error) {
         hideLoading();
@@ -326,6 +330,11 @@ function switchTab(tabName) {
         content.classList.remove('active');
     });
     document.getElementById(tabName).classList.add('active');
+
+    // Phase 9: Lazy-load intent debt tab
+    if (tabName === 'intent-debt') {
+        loadIntentDebtTabContent();
+    }
 }
 
 function filterPullRequests(state, event) {
@@ -442,6 +451,8 @@ function displayPullRequests(pullRequests) {
         if (typeof initializePRIndicators === 'function') {
             initializePRIndicators();
         }
+        // Phase 9: Inject intent badges on PR cards
+        injectIntentBadgesOnPRCards();
     }, 300);
 }
 
@@ -550,5 +561,220 @@ async function loadCognitiveDebtBadge() {
     } catch (err) {
         // Silently fail — cognitive debt data may not exist yet
         console.debug('Cognitive debt badge: no data yet');
+    }
+}
+
+
+// =============================================================================
+// PHASE 9: Intent Debt Detection
+// =============================================================================
+
+async function loadFileIntents() {
+    if (!currentRepoId) return;
+    try {
+        const intents = await apiRequest(`/api/repositories/${currentRepoId}/file-intent/`);
+        displayFileIntents(intents);
+    } catch (err) {
+        document.getElementById('fileIntentsList').innerHTML = '<div class="empty-state">No captured decisions found</div>';
+    }
+}
+
+function displayFileIntents(intents) {
+    const container = document.getElementById('fileIntentsList');
+
+    if (!intents || intents.length === 0) {
+        container.innerHTML = '<div class="empty-state">No captured decisions yet</div>';
+        return;
+    }
+
+    container.innerHTML = intents.map(intent => {
+        const flag = intent.flag || {};
+        return `
+        <div class="commit-item" title="${escapeHtml(intent.intent_text)}">
+            <div style="width: 12px; height: 12px; border-radius: 50%; background: #8b5cf6; margin-top: 4px; flex-shrink: 0;" title="Captured Intent"></div>
+            <div class="commit-info">
+                <div class="commit-message" style="color: #4b5563;">
+                    <span style="font-family: monospace; color: #111827; background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem;">
+                        ${escapeHtml(flag.file_path || 'unknown file')}
+                    </span>
+                    Line ${flag.line_number || '?'}: ${escapeHtml(flag.detected_value || '')}
+                </div>
+                <div class="commit-meta" style="margin-top: 4px; color: #111827; font-weight: 500;">
+                    "${escapeHtml(intent.intent_text)}"
+                </div>
+                <div class="commit-meta" style="margin-top: 2px;">
+                    <span style="display: inline-block; padding: 2px 8px; background: rgba(139,92,246,0.1); color: #8b5cf6; border-radius: 12px; font-weight: 600; font-size: 0.7rem; text-transform: uppercase;">
+                        ${escapeHtml(intent.constraint_type || 'other').replace('_', ' ')}
+                    </span>
+                    • Documented by ${escapeHtml(intent.author)}
+                    ${intent.review_required ? '• <span style="color: #ef4444; font-weight: 600;">Review Required</span>' : ''}
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+async function loadIntentDebtBadge() {
+    if (!currentRepoId) return;
+    try {
+        const summary = await apiRequest(`/api/repositories/${currentRepoId}/intent-summary/`);
+        const badge = document.getElementById('intentPendingCount');
+        if (badge && summary.pending_flags > 0) {
+            badge.textContent = summary.pending_flags;
+            badge.style.display = 'inline-flex';
+        }
+    } catch (err) {
+        console.debug('Intent debt badge: no data yet');
+    }
+}
+
+async function injectIntentBadgesOnPRCards() {
+    if (!currentRepoId) return;
+    try {
+        const summary = await apiRequest(`/api/repositories/${currentRepoId}/intent-summary/`);
+        if (!summary.pending_by_pr || summary.pending_by_pr.length === 0) return;
+
+        // Build a map of pr_number -> count
+        const pendingMap = {};
+        for (const pr of summary.pending_by_pr) {
+            pendingMap[pr.pr_number] = pr.count;
+        }
+
+        // Find all PR cards and inject badges
+        document.querySelectorAll('.item-card[data-pr-number]').forEach(card => {
+            const prNumber = parseInt(card.dataset.prNumber);
+            const pending = pendingMap[prNumber];
+            if (pending && pending > 0) {
+                const headerEl = card.querySelector('.item-header');
+                if (headerEl && !headerEl.querySelector('.intent-badge')) {
+                    const badge = document.createElement('a');
+                    badge.className = 'intent-badge intent-badge-pending';
+                    badge.href = `/intent-capture/?repo_id=${currentRepoId}&pr_number=${prNumber}`;
+                    badge.title = `${pending} decision${pending !== 1 ? 's' : ''} need intent capture`;
+                    badge.innerHTML = `
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                        </svg>
+                        Intent: ${pending} pending
+                    `;
+                    badge.onclick = (e) => e.stopPropagation();
+                    headerEl.appendChild(badge);
+                }
+            }
+        });
+    } catch (err) {
+        console.debug('Intent badges: no data yet');
+    }
+}
+
+async function loadIntentDebtTabContent() {
+    const container = document.getElementById('intentDebtContainer');
+    if (!container || !currentRepoId) return;
+
+    // Only load once if already populated
+    if (container.dataset.loaded === 'true') return;
+
+    container.innerHTML = `
+        <div style="text-align: center; padding: 40px; color: #64748b;">
+            <div class="spinner" style="width: 32px; height: 32px; border: 3px solid rgba(139,92,246,0.2); border-top-color: #8b5cf6; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px;"></div>
+            <p>Loading intent debt analysis...</p>
+        </div>`;
+
+    try {
+        const summary = await apiRequest(`/api/repositories/${currentRepoId}/intent-summary/`);
+        renderIntentDebtDashboard(container, summary);
+        container.dataset.loaded = 'true';
+    } catch (e) {
+        container.innerHTML = `
+            <div style="text-align: center; padding: 60px 24px; color: #64748b;">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom: 16px;">
+                    <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                </svg>
+                <h3 style="color: #f1f5f9; margin: 0 0 8px;">No Intent Data Yet</h3>
+                <p>Run an intent scan to detect decisions that need documentation.</p>
+                <button onclick="triggerIntentScanFromRepo()" style="margin-top: 16px; padding: 10px 24px; background: linear-gradient(135deg, #8b5cf6, #6366f1); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Run Intent Scan</button>
+            </div>`;
+    }
+}
+
+function renderIntentDebtDashboard(container, summary) {
+    const captureRate = summary.capture_rate || 0;
+    const rateColor = captureRate >= 80 ? '#22c55e' : captureRate >= 50 ? '#f59e0b' : '#ef4444';
+
+    let html = `
+    <div style="padding: 4px 0;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 24px;">
+            <div style="background: rgba(139,92,246,0.08); border: 1px solid rgba(139,92,246,0.2); border-radius: 12px; padding: 20px; text-align: center;">
+                <div style="font-size: 2rem; font-weight: 700; color: #c4b5fd;">${summary.total_flags}</div>
+                <div style="font-size: 0.78rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Total Flags</div>
+            </div>
+            <div style="background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.2); border-radius: 12px; padding: 20px; text-align: center;">
+                <div style="font-size: 2rem; font-weight: 700; color: #fbbf24;">${summary.pending_flags}</div>
+                <div style="font-size: 0.78rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Pending</div>
+            </div>
+            <div style="background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.2); border-radius: 12px; padding: 20px; text-align: center;">
+                <div style="font-size: 2rem; font-weight: 700; color: #4ade80;">${summary.captured_flags}</div>
+                <div style="font-size: 0.78rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Captured</div>
+            </div>
+            <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 20px; text-align: center;">
+                <div style="font-size: 2rem; font-weight: 700; color: ${rateColor};">${captureRate}%</div>
+                <div style="font-size: 0.78rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Capture Rate</div>
+            </div>
+        </div>
+        <div style="display: flex; gap: 12px; margin-bottom: 24px;">
+            <button onclick="triggerIntentScanFromRepo()" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; background: linear-gradient(135deg, #8b5cf6, #6366f1); color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 0.88rem; box-shadow: 0 2px 12px rgba(139,92,246,0.25);">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                Run Intent Scan
+            </button>
+        </div>`;
+
+    if (summary.pending_by_pr && summary.pending_by_pr.length > 0) {
+        html += `<h3 style="color: #f1f5f9; font-size: 1rem; margin: 0 0 16px; font-weight: 600;">PRs Needing Intent Capture</h3>
+        <div style="display: flex; flex-direction: column; gap: 10px;">`;
+        for (const pr of summary.pending_by_pr) {
+            html += `
+            <a href="/intent-capture/?repo_id=${currentRepoId}&pr_number=${pr.pr_number}"
+               style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; background: rgba(15,23,42,0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; text-decoration: none; transition: all 0.2s;"
+               onmouseover="this.style.borderColor='rgba(139,92,246,0.3)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.08)'">
+                <div>
+                    <div style="color: #e2e8f0; font-weight: 600; font-size: 0.9rem; margin-bottom: 4px;">PR #${pr.pr_number}: ${escapeHtml(pr.pr_title)}</div>
+                    <div style="color: #64748b; font-size: 0.8rem;">${pr.count} decision${pr.count !== 1 ? 's' : ''} awaiting documentation</div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="display: inline-flex; padding: 4px 12px; background: rgba(251,191,36,0.12); color: #fbbf24; border-radius: 20px; font-size: 0.78rem; font-weight: 600;">${pr.count} pending</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </div>
+            </a>`;
+        }
+        html += `</div>`;
+    } else if (summary.total_flags === 0) {
+        html += `<div style="text-align: center; padding: 40px; color: #64748b;">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom: 16px;"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+            <h3 style="color: #f1f5f9; margin: 0 0 8px;">All Clear!</h3>
+            <p>No pending intent flags. Run a scan after new PRs are synced.</p>
+        </div>`;
+    } else {
+        html += `<div style="text-align: center; padding: 40px; color: #64748b;">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="1.5" style="margin-bottom: 16px;"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+            <h3 style="color: #f1f5f9; margin: 0 0 8px;">All Intent Captured! 🎉</h3>
+            <p>Every flagged decision has been documented.</p>
+        </div>`;
+    }
+
+    html += `</div>`;
+    container.innerHTML = html;
+}
+
+async function triggerIntentScanFromRepo() {
+    if (!currentRepoId) return;
+    try {
+        const result = await apiRequest(`/api/repositories/${currentRepoId}/intent-scan/`, 'POST');
+        showToast(result.message || 'Intent scan started!', 'success');
+        // Clear cache and reload after delay
+        const container = document.getElementById('intentDebtContainer');
+        if (container) container.dataset.loaded = '';
+        setTimeout(() => loadIntentDebtTabContent(), 4000);
+    } catch (e) {
+        showToast('Failed to start intent scan', 'error');
     }
 }

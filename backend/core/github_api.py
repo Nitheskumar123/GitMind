@@ -552,3 +552,32 @@ class GitHubAPIClient:
         except Exception as e:
             logger.error(f"Error requesting reviewers: {e}")
             return False
+
+    # ------------------------------------------------------------------ #
+    #  PHASE 9: Intent Debt Detection — PR Files
+    # ------------------------------------------------------------------ #
+    def get_pull_request_files(self, full_name, pr_number):
+        """
+        Get the list of files changed in a pull request, including patch content.
+        Returns list of dicts with 'filename', 'patch', 'additions', 'deletions', 'status'.
+        """
+        try:
+            repo = self.client.get_repo(full_name)
+            pull = repo.get_pull(pr_number)
+            files = pull.get_files()
+
+            file_list = []
+            for f in files:
+                file_list.append({
+                    'filename': f.filename,
+                    'patch': f.patch or '',
+                    'additions': f.additions,
+                    'deletions': f.deletions,
+                    'changes': f.changes,
+                    'status': f.status,  # 'added', 'modified', 'removed', etc.
+                })
+
+            return file_list
+        except Exception as e:
+            logger.error(f"Error fetching PR #{pr_number} files for {full_name}: {e}")
+            return []

@@ -133,4 +133,22 @@ urlpatterns = [
          views.cognitive_debt_summary, name='cognitive_debt_summary'),
     path('repositories/<int:repo_id>/debt/analyse/',
          views.trigger_debt_analysis, name='trigger_debt_analysis'),
+
+    # ==========================================================================
+    # PHASE 9: Intent Debt Detection
+    # ==========================================================================
+    path('repositories/<int:repo_id>/pulls/<int:pr_number>/intent-flags/',
+         views.get_intent_flags, name='get_intent_flags'),
+    path('intent-flags/<int:flag_id>/capture/',
+         views.capture_intent, name='capture_intent'),
+    path('intent-flags/<int:flag_id>/dismiss/',
+         views.dismiss_intent, name='dismiss_intent'),
+    path('repositories/<int:repo_id>/file-intent/',
+         views.get_file_intent, name='get_file_intent'),
+    path('repositories/<int:repo_id>/intent-summary/',
+         views.get_intent_summary, name='get_intent_summary'),
+    path('repositories/<int:repo_id>/intent-scan/',
+         views.trigger_intent_scan, name='trigger_intent_scan'),
+    path('intent-flags/pending/',
+         views.get_user_pending_intents, name='get_user_pending_intents'),
 ]

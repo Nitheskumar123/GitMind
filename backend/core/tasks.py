@@ -168,6 +168,12 @@ def sync_repository_data(repository_id):
         except Exception as debt_err:
             logger.warning(f"Cognitive debt auto-trigger failed (non-fatal): {debt_err}")
 
+        # Phase 9: Trigger intent debt detection after sync
+        try:
+            detect_intent_flags.delay(repository_id)
+        except Exception as intent_err:
+            logger.warning(f"Intent debt auto-trigger failed (non-fatal): {intent_err}")
+
         logger.info(f"Successfully synced repository: {repository.full_name}")
         return True
 
@@ -1220,5 +1226,162 @@ def analyse_cognitive_debt(self, repo_id, force=False):
     except Exception as e:
         logger.error(f"Cognitive debt analysis failed for repo {repo_id}: {e}")
         self.retry(countdown=120, exc=e)
+    finally:
+        cache.delete(lock_key)
+
+
+# =============================================================================
+# PHASE 9: Intent Debt Detection Task
+# =============================================================================
+
+@shared_task(bind=True, max_retries=2, default_retry_delay=60)
+def detect_intent_flags(self, repo_id):
+    """
+    Scan all recent PRs in a repository for intent debt.
+    For each PR, fetch file contents via GitHub API, run IntentDetector,
+    and save IntentFlag rows for any suspicious decisions found.
+    """
+    import time
+    from django.core.cache import cache
+
+    lock_key = f"intent_detect_lock_{repo_id}"
+    if cache.get(lock_key):
+        logger.info(f"Intent detection already running for repo {repo_id}, skipping")
+        return {'skipped': True, 'reason': 'Already running'}
+
+    cache.set(lock_key, True, timeout=120)
+
+    try:
+        from .models import IntentFlag
+        from .intent_detector import IntentDetector
+
+        repository = Repository.objects.get(id=repo_id)
+        user = repository.user
+
+        if not user.github_access_token:
+            logger.error(f"No access token for user {user.github_login}")
+            return {'success': False, 'error': 'No access token'}
+
+        client = GitHubAPIClient(user.github_access_token)
+        detector = IntentDetector()
+
+        start_time = time.time()
+        total_flags_created = 0
+        prs_scanned = 0
+
+        # Get recent PRs (open and recently closed/merged)
+        prs = repository.pull_requests.all().order_by('-created_at')[:20]
+
+        for pr in prs:
+            # Skip PRs that already have flags
+            existing_flags = IntentFlag.objects.filter(pull_request=pr).count()
+            if existing_flags > 0:
+                continue
+
+            try:
+                # Fetch PR files from GitHub
+                pr_files = client.get_pull_request_files(
+                    repository.full_name, pr.number
+                )
+
+                if not pr_files:
+                    continue
+
+                # Estimate AI confidence from commit/PR metadata
+                ai_conf = IntentDetector.estimate_ai_confidence(
+                    commit_message=pr.title,
+                    pr_body=pr.body or '',
+                    additions=pr.additions,
+                )
+
+                # Scan each file for intent flags
+                for file_data in pr_files:
+                    file_path = file_data.get('filename', '')
+                    patch = file_data.get('patch', '')
+
+                    # Only scan code files
+                    code_extensions = (
+                        '.py', '.js', '.ts', '.java', '.go', '.rs',
+                        '.rb', '.php', '.cpp', '.c', '.cs', '.kt',
+                        '.swift', '.scala', '.jsx', '.tsx',
+                    )
+                    if not any(file_path.endswith(ext) for ext in code_extensions):
+                        continue
+
+                    # Use the patch content (diff) as the code to scan
+                    if not patch:
+                        continue
+
+                    # Extract added lines from the patch
+                    added_lines = []
+                    for diff_line in patch.split('\n'):
+                        if diff_line.startswith('+') and not diff_line.startswith('+++'):
+                            added_lines.append(diff_line[1:])  # Remove the '+' prefix
+
+                    content = '\n'.join(added_lines)
+                    if not content.strip():
+                        continue
+
+                    file_flags = detector.scan_file(
+                        file_path, content, ai_confidence=ai_conf
+                    )
+
+                    # Save flags to database
+                    for flag_data in file_flags:
+                        IntentFlag.objects.get_or_create(
+                            repository=repository,
+                            pull_request=pr,
+                            file_path=flag_data['file_path'],
+                            line_number=flag_data['line_number'],
+                            detected_value=flag_data['detected_value'],
+                            defaults={
+                                'flag_type': flag_data['flag_type'],
+                                'question': flag_data['question'],
+                                'code_snippet': flag_data['code_snippet'],
+                                'ai_confidence': flag_data['ai_confidence'],
+                                'status': 'pending',
+                            }
+                        )
+                        total_flags_created += 1
+
+                prs_scanned += 1
+
+            except Exception as pr_err:
+                logger.warning(
+                    f"Error scanning PR #{pr.number} for intent: {pr_err}"
+                )
+                continue
+
+        duration = time.time() - start_time
+
+        log_automation_action(
+            action_type='insight_generation',
+            repository=repository,
+            user=repository.user,
+            trigger='auto',
+            description=f"Intent debt detection for {repository.full_name}",
+            status='success',
+            task_id=self.request.id,
+        )
+
+        logger.info(
+            f"Intent detection complete for {repository.full_name}: "
+            f"{prs_scanned} PRs scanned, {total_flags_created} flags created "
+            f"in {duration:.1f}s"
+        )
+
+        return {
+            'success': True,
+            'prs_scanned': prs_scanned,
+            'flags_created': total_flags_created,
+            'duration': round(duration, 2),
+        }
+
+    except Repository.DoesNotExist:
+        logger.error(f"Repository {repo_id} not found for intent detection")
+        return {'success': False, 'error': 'Repository not found'}
+    except Exception as e:
+        logger.error(f"Intent detection failed for repo {repo_id}: {e}")
+        self.retry(countdown=60, exc=e)
     finally:
         cache.delete(lock_key)

@@ -8,6 +8,7 @@ from .models import (
     PRDescriptionTemplate, CodeOwnership, ReviewerRecommendation, DeveloperExpertise,
     ConflictDetection, SymbolMap, DependencyAnalysis, DependencyUpdate,
     FileComprehensionScore,
+    IntentFlag, IntentRecord,
 )
 
 
@@ -701,4 +702,54 @@ class FileComprehensionScoreSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def get_repository_name(self, obj):
-        return obj.repository.full_name
+        return obj.repository.full_name
+
+
+# =============================================================================
+# PHASE 9 SERIALIZERS: Intent Debt Detection
+# =============================================================================
+
+class IntentFlagSerializer(serializers.ModelSerializer):
+    """Serializer for intent flags (detected decisions needing explanation)."""
+    repository_name = serializers.SerializerMethodField()
+    pr_number = serializers.SerializerMethodField()
+    intent_record = serializers.SerializerMethodField()
+
+    class Meta:
+        model = IntentFlag
+        fields = [
+            'id', 'repository', 'repository_name', 'pull_request', 'pr_number',
+            'file_path', 'line_number', 'flag_type', 'detected_value',
+            'question', 'code_snippet', 'ai_confidence', 'status',
+            'intent_record', 'created_at',
+        ]
+        read_only_fields = ['id', 'created_at']
+
+    def get_repository_name(self, obj):
+        return obj.repository.full_name
+
+    def get_pr_number(self, obj):
+        return obj.pull_request.number if obj.pull_request else None
+
+    def get_intent_record(self, obj):
+        try:
+            record = obj.intent_record
+            return IntentRecordSerializer(record).data
+        except IntentRecord.DoesNotExist:
+            return None
+
+
+class IntentRecordSerializer(serializers.ModelSerializer):
+    """Serializer for intent records (developer explanations)."""
+    flag_id = serializers.IntegerField(source='flag.id', read_only=True)
+    file_path = serializers.CharField(source='flag.file_path', read_only=True)
+    line_number = serializers.IntegerField(source='flag.line_number', read_only=True)
+
+    class Meta:
+        model = IntentRecord
+        fields = [
+            'id', 'flag_id', 'file_path', 'line_number',
+            'author', 'intent_text', 'constraint_type',
+            'review_required', 'created_at',
+        ]
+        read_only_fields = ['id', 'flag_id', 'file_path', 'line_number', 'created_at']

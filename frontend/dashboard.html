@@ -218,6 +218,20 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Intent Debt Notification Banner (Phase 9) -->
+                <div id="intentNotificationBanner" class="intent-notification-banner" style="display: none;">
+                    <div class="intent-notification-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                        </svg>
+                    </div>
+                    <div class="intent-notification-content">
+                        <h3 id="intentNotificationTitle">Intent Capture Needed</h3>
+                        <p id="intentNotificationText">You have unanswered intent questions across your PRs</p>
+                    </div>
+                    <a id="intentNotificationLink" href="#" class="intent-notification-btn">Capture Intent →</a>
+                </div>
                 <!-- After Getting Started section, add: -->
 
                 <!-- AI Insights Widget -->
@@ -614,7 +628,34 @@
 
             // Initialize insights widget
             initializeInsightsWidget();
+
+            // Phase 9: Load intent notification banner
+            loadIntentNotificationBanner();
         });
+
+        async function loadIntentNotificationBanner() {
+            try {
+                const data = await apiRequest('/api/intent-flags/pending/');
+                if (data.total_pending > 0 && data.prs && data.prs.length > 0) {
+                    const banner = document.getElementById('intentNotificationBanner');
+                    const title = document.getElementById('intentNotificationTitle');
+                    const text = document.getElementById('intentNotificationText');
+                    const link = document.getElementById('intentNotificationLink');
+
+                    title.textContent = `${data.total_pending} Intent Question${data.total_pending !== 1 ? 's' : ''} Pending`;
+                    text.textContent = `You have ${data.total_pending} unanswered intent question${data.total_pending !== 1 ? 's' : ''} across ${data.prs.length} PR${data.prs.length !== 1 ? 's' : ''}. Capture the reasoning before it's lost.`;
+
+                    // Link to the oldest pending PR
+                    const firstPR = data.prs[0];
+                    link.href = `/intent-capture/?repo_id=${firstPR.repo_id}&pr_number=${firstPR.pr_number}`;
+
+                    banner.style.display = 'flex';
+                }
+            } catch (e) {
+                // Silent fail
+                console.debug('Intent banner: no data yet');
+            }
+        }
     </script>
 </body>
 

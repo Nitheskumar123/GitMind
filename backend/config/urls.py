@@ -15,6 +15,7 @@ urlpatterns = [
     path('repository-detail.html', TemplateView.as_view(template_name='repository-detail.html'), name='repository-detail'),
     path('settings-panel.html', TemplateView.as_view(template_name='settings-panel.html'), name='settings-panel'),
     path('cognitive-debt/', TemplateView.as_view(template_name='cognitive-debt.html'), name='cognitive-debt'),
+    path('intent-capture/', TemplateView.as_view(template_name='intent-capture.html'), name='intent-capture'),
 ]
 
 # Serve frontend assets in development
